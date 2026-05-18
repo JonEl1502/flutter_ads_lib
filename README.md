@@ -29,7 +29,7 @@ Or via git:
 dependencies:
   flutter_ads_lib:
     git:
-      url: https://github.com/your-org/flutter_ads_lib.git
+      url: https://github.com/JonEl1502/flutter_ads_lib.git
 ```
 
 Then run:
