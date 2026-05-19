@@ -1,175 +1,56 @@
-import 'dart:async';
-
-import 'package:facebook_audience_network/facebook_audience_network.dart';
 import 'package:flutter/widgets.dart';
 
 import '../ads_config.dart';
 import '../models/ad_result.dart';
 import 'ad_network_adapter.dart';
 
+/// Stub adapter. The Facebook Audience Network plugin
+/// (`facebook_audience_network` 1.0.1) is abandoned and breaks modern Android
+/// Gradle Plugin builds (`package` attribute in manifest is rejected), so it
+/// has been removed from this library's dependencies. Selecting
+/// `AdNetwork.facebook` will throw at runtime — switch to `AdNetwork.admob`,
+/// `AdNetwork.unity`, or `AdNetwork.applovin` instead.
 class FacebookAdapter implements AdNetworkAdapter {
-  bool _interstitialLoaded = false;
-  bool _rewardedLoaded = false;
-
-  Completer<AdResult>? _interstitialShowCompleter;
-  Completer<AdResult>? _rewardedShowCompleter;
-  bool _rewardedVideoCompleted = false;
+  static const _msg =
+      'Facebook Audience Network is not available in this build. '
+      'Use AdNetwork.admob, AdNetwork.unity, or AdNetwork.applovin.';
 
   @override
-  Future<void> initialize(AdsConfig config) async {
-    await FacebookAudienceNetwork.init(
-      testingId: config.testMode ? 'YOUR_TEST_DEVICE_HASH' : null,
-    );
-  }
+  Future<void> initialize(AdsConfig config) async =>
+      throw UnsupportedError(_msg);
 
   @override
-  Future<void> dispose() async {
-    _interstitialLoaded = false;
-    _rewardedLoaded = false;
-    FacebookInterstitialAd.destroyInterstitialAd();
-    FacebookRewardedVideoAd.destroyRewardedVideoAd();
-  }
-
-  // --- Interstitial ---
+  Future<void> dispose() async {}
 
   @override
-  bool get isInterstitialLoaded => _interstitialLoaded;
+  bool get isInterstitialLoaded => false;
+  @override
+  Future<void> loadInterstitial(String adUnitId) async =>
+      throw UnsupportedError(_msg);
+  @override
+  Future<AdResult> showInterstitial() async => throw UnsupportedError(_msg);
 
   @override
-  Future<void> loadInterstitial(String adUnitId) async {
-    final completer = Completer<void>();
-    FacebookInterstitialAd.loadInterstitialAd(
-      placementId: adUnitId,
-      listener: (result, value) {
-        if (result == InterstitialAdResult.LOADED) {
-          _interstitialLoaded = true;
-          if (!completer.isCompleted) completer.complete();
-        } else if (result == InterstitialAdResult.ERROR) {
-          _interstitialLoaded = false;
-          debugPrint('Facebook interstitial failed to load: $value');
-          if (!completer.isCompleted) completer.complete();
-        } else if (result == InterstitialAdResult.DISMISSED) {
-          _interstitialLoaded = false;
-          if (_interstitialShowCompleter != null &&
-              !_interstitialShowCompleter!.isCompleted) {
-            _interstitialShowCompleter!.complete(AdResult.success());
-          }
-        }
-      },
-    );
-    return completer.future;
-  }
-
+  bool get isRewardedLoaded => false;
   @override
-  Future<AdResult> showInterstitial() async {
-    if (!_interstitialLoaded) {
-      return AdResult.failure('Interstitial ad not loaded');
-    }
-    _interstitialShowCompleter = Completer<AdResult>();
-    FacebookInterstitialAd.showInterstitialAd();
-    return _interstitialShowCompleter!.future;
-  }
-
-  // --- Rewarded ---
-
+  Future<void> loadRewarded(String adUnitId) async =>
+      throw UnsupportedError(_msg);
   @override
-  bool get isRewardedLoaded => _rewardedLoaded;
-
-  @override
-  Future<void> loadRewarded(String adUnitId) async {
-    final completer = Completer<void>();
-    _rewardedVideoCompleted = false;
-
-    FacebookRewardedVideoAd.loadRewardedVideoAd(
-      placementId: adUnitId,
-      listener: (result, value) {
-        if (result == RewardedVideoAdResult.LOADED) {
-          _rewardedLoaded = true;
-          if (!completer.isCompleted) completer.complete();
-        } else if (result == RewardedVideoAdResult.ERROR) {
-          _rewardedLoaded = false;
-          debugPrint('Facebook rewarded failed to load: $value');
-          if (!completer.isCompleted) completer.complete();
-          if (_rewardedShowCompleter != null &&
-              !_rewardedShowCompleter!.isCompleted) {
-            _rewardedShowCompleter!.complete(AdResult.failure('$value'));
-          }
-        } else if (result == RewardedVideoAdResult.VIDEO_COMPLETE) {
-          _rewardedVideoCompleted = true;
-        } else if (result == RewardedVideoAdResult.VIDEO_CLOSED) {
-          _rewardedLoaded = false;
-          if (_rewardedShowCompleter != null &&
-              !_rewardedShowCompleter!.isCompleted) {
-            if (_rewardedVideoCompleted) {
-              _rewardedShowCompleter!.complete(AdResult.success(
-                rewardType: 'reward',
-                rewardAmount: 1,
-              ));
-            } else {
-              _rewardedShowCompleter!
-                  .complete(AdResult.failure('User closed before reward'));
-            }
-          }
-        }
-      },
-    );
-    return completer.future;
-  }
-
-  @override
-  Future<AdResult> showRewarded() async {
-    if (!_rewardedLoaded) {
-      return AdResult.failure('Rewarded ad not loaded');
-    }
-    _rewardedShowCompleter = Completer<AdResult>();
-    _rewardedVideoCompleted = false;
-    FacebookRewardedVideoAd.showRewardedVideoAd();
-    return _rewardedShowCompleter!.future;
-  }
-
-  // --- App Open (not supported by Facebook) ---
+  Future<AdResult> showRewarded() async => throw UnsupportedError(_msg);
 
   @override
   bool get isAppOpenLoaded => false;
+  @override
+  Future<void> loadAppOpen(String adUnitId) async =>
+      throw UnsupportedError(_msg);
+  @override
+  Future<AdResult> showAppOpen() async => throw UnsupportedError(_msg);
 
   @override
-  Future<void> loadAppOpen(String adUnitId) async {
-    debugPrint('Facebook Audience Network does not support App Open ads');
-  }
+  Widget buildBannerAd(String adUnitId, {double? width}) =>
+      const SizedBox.shrink();
 
   @override
-  Future<AdResult> showAppOpen() async {
-    return AdResult.failure('App Open ads not supported by Facebook');
-  }
-
-  // --- Banner ---
-
-  @override
-  Widget buildBannerAd(String adUnitId, {double? width}) {
-    return FacebookBannerAd(
-      placementId: adUnitId,
-      bannerSize: BannerSize.STANDARD,
-      listener: (result, value) {
-        if (result == BannerAdResult.ERROR) {
-          debugPrint('Facebook banner error: $value');
-        }
-      },
-    );
-  }
-
-  // --- Native ---
-
-  @override
-  Widget buildNativeAd(String adUnitId, {double? height}) {
-    return FacebookNativeAd(
-      placementId: adUnitId,
-      adType: NativeAdType.NATIVE_AD,
-      height: height ?? 300,
-      listener: (result, value) {
-        if (result == NativeAdResult.ERROR) {
-          debugPrint('Facebook native error: $value');
-        }
-      },
-    );
-  }
+  Widget buildNativeAd(String adUnitId, {double? height}) =>
+      const SizedBox.shrink();
 }
